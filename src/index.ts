@@ -4,8 +4,9 @@ import * as vscode from 'vscode'
 import { range } from 'lodash'
 import { getConfig } from './utils'
 import { soundPlayer } from './sound'
-import { voicePlayer } from './resource/voice'
+import { voicePlayer, setVoiceContext } from './resource/voice'
 import PluginState from './utils/PluginState'
+import { AudioManager } from './utils/AudioManager'
 
 const PLAY_VOICE_COMMAND = 'qwerty-learner.playVoice'
 const PREV_WORD_COMMAND = 'qwerty-learner.prevWord'
@@ -15,6 +16,10 @@ const TOGGLE_DIC_NAME_COMMAND = 'qwerty-learner.toggleDicName'
 
 export function activate(context: vscode.ExtensionContext) {
   const pluginState = new PluginState(context)
+  const audioManager = new AudioManager(context)
+  
+  // 设置语音播放器的上下文
+  setVoiceContext(context)
 
   const wordBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, -100)
   const inputBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, -101)
@@ -179,6 +184,113 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showInformationMessage('章节循环模式已关闭')
         }
       }),
+      vscode.commands.registerCommand('qwerty-learner.downloadDictionaryAudios', async () => {
+        const dictId = pluginState.dictKey
+        const dictName = pluginState.dict.name
+        const words = pluginState.dictWords
+        
+        // 获取要下载的发音类型
+        const voiceTypes = getConfig('downloadVoiceTypes') as ('us' | 'uk')[]
+        if (voiceTypes.length === 0) {
+          vscode.window.showWarningMessage('请先在设置中配置要下载的发音类型')
+          return
+        }
+
+        // 检查当前状态
+        const stats = audioManager.getDictionaryAudioStats(dictId, words, voiceTypes)
+        
+        const confirm = await vscode.window.showInformationMessage(
+          `准备下载 ${dictName} 的音频文件\n` +
+          `发音类型: ${voiceTypes.join(', ')}\n` +
+          `总计: ${stats.total} 个文件\n` +
+          `已下载: ${stats.downloaded} 个\n` +
+          `待下载: ${stats.missing} 个\n\n` +
+          `是否继续？`,
+          '开始下载',
+          '取消'
+        )
+
+        if (confirm !== '开始下载') {
+          return
+        }
+
+        // 创建进度提示
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: `下载 ${dictName} 音频`,
+            cancellable: false,
+          },
+          async (progress) => {
+            const result = await audioManager.downloadDictionaryAudios(
+              dictId,
+              words,
+              voiceTypes,
+              (current, total, word) => {
+                const percentage = Math.floor((current / total) * 100)
+                progress.report({
+                  increment: 100 / total,
+                  message: `${percentage}% - 正在下载: ${word}`,
+                })
+              }
+            )
+
+            vscode.window.showInformationMessage(
+              `音频下载完成！\n` +
+              `成功: ${result.success} 个\n` +
+              `跳过: ${result.skipped} 个\n` +
+              `失败: ${result.failed} 个`
+            )
+          }
+        )
+      }),
+      vscode.commands.registerCommand('qwerty-learner.checkAudioStatus', async () => {
+        const dictId = pluginState.dictKey
+        const dictName = pluginState.dict.name
+        const words = pluginState.dictWords
+        const voiceTypes = getConfig('downloadVoiceTypes') as ('us' | 'uk')[]
+        
+        if (voiceTypes.length === 0) {
+          vscode.window.showWarningMessage('请先在设置中配置发音类型')
+          return
+        }
+
+        const stats = audioManager.getDictionaryAudioStats(dictId, words, voiceTypes)
+        const storageSize = audioManager.getAudioStorageSize()
+        const useLocalAudio = getConfig('useLocalAudio')
+
+        vscode.window.showInformationMessage(
+          `词典: ${dictName}\n` +
+          `发音类型: ${voiceTypes.join(', ')}\n` +
+          `总文件数: ${stats.total}\n` +
+          `已下载: ${stats.downloaded}\n` +
+          `未下载: ${stats.missing}\n` +
+          `完成度: ${Math.round((stats.downloaded / stats.total) * 100)}%\n` +
+          `存储占用: ${storageSize} MB\n` +
+          `使用本地音频: ${useLocalAudio ? '是' : '否'}`
+        )
+      }),
+      vscode.commands.registerCommand('qwerty-learner.cleanDictionaryAudios', async () => {
+        const dictId = pluginState.dictKey
+        const dictName = pluginState.dict.name
+
+        const confirm = await vscode.window.showWarningMessage(
+          `确定要删除 ${dictName} 的所有本地音频吗？`,
+          '确定',
+          '取消'
+        )
+
+        if (confirm !== '确定') {
+          return
+        }
+
+        const success = await audioManager.cleanDictionaryAudios(dictId)
+        if (success) {
+          vscode.window.showInformationMessage(`已删除 ${dictName} 的本地音频`)
+        } else {
+          vscode.window.showErrorMessage('删除失败')
+        }
+      }),
     ],
   )
 
@@ -193,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
       pluginState.voiceLock = true
       voicePlayer(pluginState.currentWord.name, () => {
         pluginState.voiceLock = false
-      })
+      }, pluginState.dictKey)
     }
   }
   function setUpWordBar() {

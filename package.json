@@ -42,7 +42,10 @@
     "onCommand:qwerty-learner.start",
     "onCommand:qwerty-learner.changeChapter",
     "onCommand:qwerty-learner.changeDict",
-    "onCommand:qwerty-learner.toggleChapterCycle"
+    "onCommand:qwerty-learner.toggleChapterCycle",
+    "onCommand:qwerty-learner.downloadDictionaryAudios",
+    "onCommand:qwerty-learner.checkAudioStatus",
+    "onCommand:qwerty-learner.cleanDictionaryAudios"
   ],
   "contributes": {
     "commands": [
@@ -69,6 +72,18 @@
       {
         "command": "qwerty-learner.toggleChapterCycleMode",
         "title": "Qwerty Learner Change chapter Cycle Mode"
+      },
+      {
+        "command": "qwerty-learner.downloadDictionaryAudios",
+        "title": "Qwerty Learner Download Dictionary Audios"
+      },
+      {
+        "command": "qwerty-learner.checkAudioStatus",
+        "title": "Qwerty Learner Check Audio Status"
+      },
+      {
+        "command": "qwerty-learner.cleanDictionaryAudios",
+        "title": "Qwerty Learner Clean Dictionary Audios"
       }
     ],
     "keybindings": [
@@ -157,6 +172,20 @@
           "type": "boolean",
           "default": false,
           "description": "是否章节内单词顺序随机"
+        },
+        "qwerty-learner.useLocalAudio": {
+          "type": "boolean",
+          "default": false,
+          "description": "优先使用本地音频（需要先下载）"
+        },
+        "qwerty-learner.downloadVoiceTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["us", "uk"]
+          },
+          "default": ["us"],
+          "description": "下载音频时包含的发音类型"
         }
       }
     }

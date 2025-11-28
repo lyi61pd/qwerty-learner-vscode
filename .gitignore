@@ -5,3 +5,6 @@ node_modules
 *.vsix
 .history
 .DS_Store
+
+# Local audio files
+assets/audios/

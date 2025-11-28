@@ -33,6 +33,15 @@
 
 本项目为 [Qwerty Learner](https://github.com/Kaiyiwing/qwerty-learner) 的 VSCode 插件版本，访问原始项目获得更好的体验。
 
+## 运行
+```
+open -a "Visual Studio Code" /Users/ybbj100324/code/qwerty-learner-vscode
+```
+Cmd + , 打开设置 → 搜索 qwerty-learner → 启用 Use Local Audio
+Cmd + Shift + P → 输入 download → 选择下载命令
+等待下载完成
+随便打开个文件 → 按 Ctrl + Shift + Q 启动练习
+
 ## ✨ 实现原理
 
 因为 VSC 没有提供对 Keypress 的回调，所以实现上使用了较为取巧的方式，监听用户当前输入文档的改变，然后删除用户输入。 用户可以在任意代码、文档页面开启软件进行英语打字练习，插件会自动删除用户输入的文字，不会对文档内容造成影响。
@@ -53,7 +62,7 @@
 
 ### 章节、词典选择
 
-打开 VSCode 命令面板，通过 “Qwerty” 前缀过滤，即可发现插件内置的命令。
+打开 VSCode 命令面板，通过 "Qwerty" 前缀过滤，即可发现插件内置的命令。
 
 <div align=center>
 <img  src="docs/command.png"/>
@@ -65,6 +74,24 @@
 - Toggle Word Visibility 切换是否展示单词（默写模式）
 - Toggle Read Only Mode 开关只读模式
 - Toggle Chapter Cycle Mode 章节循环模式
+
+### 🎵 本地音频功能 (NEW!)
+
+支持将词典发音下载到本地，无需网络即可播放！
+
+- Download Dictionary Audios - 批量下载当前词典的音频
+- Check Audio Status - 查看音频下载状态
+- Clean Dictionary Audios - 清理本地音频文件
+
+**配置说明：**
+```json
+{
+  "qwerty-learner.useLocalAudio": true,  // 启用本地音频
+  "qwerty-learner.downloadVoiceTypes": ["us", "uk"]  // 下载美音和英音
+}
+```
+
+详细使用说明请查看 [AUDIO_FEATURE.md](AUDIO_FEATURE.md)
 
 命令面板快捷键  
 Mac: `cmd + shift + p`  

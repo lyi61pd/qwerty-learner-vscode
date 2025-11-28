@@ -9,7 +9,7 @@ export default class PluginState {
   private _globalState: vscode.Memento
 
   private _dictKey: string
-  private dictWords: Word[]
+  public dictWords: Word[]
   public dict: DictionaryResource
   public hideDictName: boolean
 
