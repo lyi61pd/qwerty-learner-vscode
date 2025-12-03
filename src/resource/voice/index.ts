@@ -6,6 +6,7 @@ import * as fs from 'fs'
 
 interface NativeModule {
   playerPlay(voiceUrl: string, callback: () => void): void
+  playerStop(): void
 }
 
 let NATIVE: any = null
@@ -73,6 +74,13 @@ const getYoudaoAudioUrl = (word: string, voiceType: 'us' | 'uk'): string => {
   return `https://dict.youdao.com/dictvoice?audio=${word}&type=${type}`
 }
 
+export const stopVoice = () => {
+  if (NATIVE && NATIVE.playerStop) {
+    console.log("[Voice] Stopping current playback")
+    NATIVE.playerStop()
+  }
+}
+
 export const voicePlayer = (word: string, callback: () => void, dictId?: string) => {
   console.log("[Voice] voicePlayer called for word:", word)
   
@@ -82,6 +90,9 @@ export const voicePlayer = (word: string, callback: () => void, dictId?: string)
     callback()
     return
   }
+  
+  // 停止当前正在播放的音频
+  stopVoice()
 
   const voiceType = getConfig('voiceType') === 'us' ? 'us' : 'uk'
   const useLocalAudio = getConfig('useLocalAudio')

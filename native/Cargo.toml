@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 neon = "1.0"
 rodio = "0.17"
 reqwest = { version = "0.11", features = ["blocking"] }
+lazy_static = "1.4"

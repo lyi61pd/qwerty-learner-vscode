@@ -4,7 +4,7 @@ import * as vscode from 'vscode'
 import { range } from 'lodash'
 import { getConfig } from './utils'
 import { soundPlayer } from './sound'
-import { voicePlayer, setVoiceContext } from './resource/voice'
+import { voicePlayer, setVoiceContext, stopVoice } from './resource/voice'
 import PluginState from './utils/PluginState'
 import { AudioManager } from './utils/AudioManager'
 
@@ -74,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (compareResult === -2) {
       // 用户完成单词输入
       soundPlayer('success')
+      stopVoice() // 停止当前播放
       pluginState.finishWord()
       initializeBar()
     } else if (compareResult >= 0) {
@@ -169,10 +170,12 @@ export function activate(context: vscode.ExtensionContext) {
         wordBar.text = pluginState.getInitialWordBarContent()
       }),
       vscode.commands.registerCommand(PREV_WORD_COMMAND, () => {
+        stopVoice() // 停止当前播放
         pluginState.prevWord()
         initializeBar()
       }),
       vscode.commands.registerCommand(NEXT_WORD_COMMAND, () => {
+        stopVoice() // 停止当前播放
         pluginState.nextWord()
         initializeBar()
       }),
@@ -329,6 +332,7 @@ export function activate(context: vscode.ExtensionContext) {
   function setUpReadOnlyInterval() {
     if (!pluginState.readOnlyIntervalId) {
       pluginState.readOnlyIntervalId = setInterval(() => {
+        stopVoice() // 停止当前播放
         pluginState.finishWord()
         initializeBar()
       }, pluginState.readOnlyInterval)

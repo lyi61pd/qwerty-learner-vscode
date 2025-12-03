@@ -3,6 +3,13 @@ use rodio::{Decoder, OutputStream, Sink};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Cursor;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+// 全局共享的 Sink，用于控制音频播放
+lazy_static::lazy_static! {
+    static ref CURRENT_SINK: Arc<Mutex<Option<Arc<Sink>>>> = Arc::new(Mutex::new(None));
+}
 
 fn player_play(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     let url = cx.argument::<JsString>(0)?.value(&mut cx);
@@ -34,10 +41,30 @@ fn player_play(mut cx: FunctionContext) -> JsResult<JsUndefined> {
     Ok(cx.undefined())
 }
 
+fn player_stop(mut cx: FunctionContext) -> JsResult<JsUndefined> {
+    // 清空队列并停止当前正在播放的音频
+    if let Ok(mut sink_guard) = CURRENT_SINK.lock() {
+        if let Some(sink) = sink_guard.take() {
+            sink.clear(); // 清空播放队列
+            sink.stop(); // 立即停止
+        }
+    }
+    Ok(cx.undefined())
+}
+
 fn play_audio(url: &str) -> Result<(), Box<dyn std::error::Error>> {
-    // 获取音频输出流
+    // 先停止之前的播放
+    {
+        let mut sink_guard = CURRENT_SINK.lock().map_err(|e| format!("Lock error: {}", e))?;
+        if let Some(sink) = sink_guard.take() {
+            sink.clear();
+            sink.stop();
+        }
+    }
+    
+    // 创建新的音频系统（stream需要保持存活，所以不能drop）
     let (_stream, stream_handle) = OutputStream::try_default()?;
-    let sink = Sink::try_new(&stream_handle)?;
+    let sink = Arc::new(Sink::try_new(&stream_handle)?);
     
     // 判断是本地文件还是网络 URL
     if url.starts_with("file://") {
@@ -60,8 +87,39 @@ fn play_audio(url: &str) -> Result<(), Box<dyn std::error::Error>> {
         sink.append(source);
     }
     
-    // 等待播放完成
-    sink.sleep_until_end();
+    // 克隆sink引用用于轮询检查
+    let sink_clone = Arc::clone(&sink);
+    
+    // 保存到全局变量，以便可以被停止
+    {
+        let mut sink_guard = CURRENT_SINK.lock().map_err(|e| format!("Lock error: {}", e))?;
+        *sink_guard = Some(sink);
+    }
+    
+    // 使用轮询方式检查播放状态，而不是阻塞等待
+    loop {
+        std::thread::sleep(Duration::from_millis(50));
+        
+        // 检查sink是否还在全局变量中（如果被清除了说明被停止了）
+        {
+            let sink_guard = CURRENT_SINK.lock().map_err(|e| format!("Lock error: {}", e))?;
+            if sink_guard.is_none() {
+                // 被外部停止
+                break;
+            }
+        }
+        
+        // 检查播放是否完成
+        if sink_clone.empty() {
+            break;
+        }
+    }
+    
+    // 播放完成后清除引用
+    {
+        let mut sink_guard = CURRENT_SINK.lock().map_err(|e| format!("Lock error: {}", e))?;
+        *sink_guard = None;
+    }
     
     Ok(())
 }
@@ -69,5 +127,6 @@ fn play_audio(url: &str) -> Result<(), Box<dyn std::error::Error>> {
 #[neon::main]
 fn main(mut cx: ModuleContext) -> NeonResult<()> {
     cx.export_function("playerPlay", player_play)?;
+    cx.export_function("playerStop", player_stop)?;
     Ok(())
 }
