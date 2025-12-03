@@ -175,6 +175,7 @@ export default class PluginState {
     return getConfig('voiceType')
   }
   get shouldPlayVoice(): boolean {
+    console.log(this.voiceType, this.voiceLock)
     return this.voiceType !== 'close' && !this.voiceLock
   }
 
@@ -204,6 +205,7 @@ export default class PluginState {
   }
 
   nextWord() {
+    console.log('nextWord')
     if (this.order === this.wordList.length - 1) {
       //是否章节循环
       if (this.chapterCycleMode) {

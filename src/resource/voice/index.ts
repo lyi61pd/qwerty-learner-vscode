@@ -74,7 +74,11 @@ const getYoudaoAudioUrl = (word: string, voiceType: 'us' | 'uk'): string => {
 }
 
 export const voicePlayer = (word: string, callback: () => void, dictId?: string) => {
+  console.log("[Voice] voicePlayer called for word:", word)
+  
+  // 如果 NATIVE 模块不可用，立即执行回调
   if (!NATIVE) {
+    console.log("[Voice] NATIVE module not available, skipping playback")
     callback()
     return
   }
@@ -88,16 +92,44 @@ export const voicePlayer = (word: string, callback: () => void, dictId?: string)
   if (useLocalAudio && dictId) {
     const localPath = getLocalAudioPath(dictId, word, voiceType)
     if (localPath) {
-      // 使用 file:// 协议播放本地文件
-      audioUrl = `file://${localPath}`
+      // 直接使用本地文件路径（新的 native module 支持本地文件）
+      audioUrl = localPath
+      console.log(`[Voice] Using local audio: ${audioUrl}`)
     } else {
       // 本地没有，使用在线API
       audioUrl = getYoudaoAudioUrl(word, voiceType)
+      console.log(`[Voice] Local audio not found, using online: ${audioUrl}`)
     }
   } else {
     // 使用在线API
     audioUrl = getYoudaoAudioUrl(word, voiceType)
+    console.log(`[Voice] Using online audio: ${audioUrl}`)
   }
 
-  NATIVE.playerPlay(audioUrl, callback)
+  try {
+    console.log("[Voice] Calling NATIVE.playerPlay with URL:", audioUrl)
+    
+    // 设置超时保险机制，防止回调永远不被调用
+    const timeoutId = setTimeout(() => {
+      console.log("[Voice] Playback timeout, forcing callback")
+      callback()
+    }, 10000) // 10秒超时
+    
+    // 包装回调，确保只执行一次
+    let callbackCalled = false
+    const wrappedCallback = () => {
+      if (!callbackCalled) {
+        callbackCalled = true
+        clearTimeout(timeoutId)
+        console.log("[Voice] Playback finished, callback executed")
+        callback()
+      }
+    }
+    
+    NATIVE.playerPlay(audioUrl, wrappedCallback)
+  } catch (error) {
+    console.error("[Voice] Error playing audio:", error)
+    // 发生错误时也要执行回调，释放锁
+    callback()
+  }
 }

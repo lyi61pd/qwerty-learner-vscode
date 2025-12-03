@@ -258,6 +258,7 @@ export function activate(context: vscode.ExtensionContext) {
         const stats = audioManager.getDictionaryAudioStats(dictId, words, voiceTypes)
         const storageSize = audioManager.getAudioStorageSize()
         const useLocalAudio = getConfig('useLocalAudio')
+        console.log(useLocalAudio)
 
         vscode.window.showInformationMessage(
           `词典: ${dictName}\n` +
@@ -301,8 +302,11 @@ export function activate(context: vscode.ExtensionContext) {
     setUpInputBar()
   }
   function playVoice() {
+    console.log('playVoice')
+    console.log('pluginState.shouldPlayVoice',pluginState.shouldPlayVoice)
     if (pluginState.shouldPlayVoice) {
       pluginState.voiceLock = true
+      console.log('gonna voicePlayer')
       voicePlayer(pluginState.currentWord.name, () => {
         pluginState.voiceLock = false
       }, pluginState.dictKey)

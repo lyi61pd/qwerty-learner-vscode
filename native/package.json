@@ -1,0 +1,14 @@
+{
+  "name": "qwerty-learner-audio-native",
+  "version": "0.1.0",
+  "description": "Native audio player for Qwerty Learner",
+  "main": "index.node",
+  "scripts": {
+    "build": "cargo-cp-artifact -nc index.node -- cargo build --message-format=json-render-diagnostics --release",
+    "build-debug": "npm run build --",
+    "install": "npm run build-debug"
+  },
+  "devDependencies": {
+    "cargo-cp-artifact": "^0.1"
+  }
+}
