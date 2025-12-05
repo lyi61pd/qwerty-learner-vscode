@@ -1,3 +1,4 @@
+# 开发文件
 .vscode/**
 .vscode-test/**
 out/test/**
@@ -11,8 +12,35 @@ vsc-extension-quickstart.md
 **/*.ts
 node_modules
 .vscode
-node_modules
 out/
-src/
 tsconfig.json
 webpack.config.js
+.eslintrc.js
+prettier.config.js
+
+# 构建脚本和文档
+build-native.sh
+test-audio-feature.sh
+AUDIO_FEATURE.md
+HOW_TO_TEST.md
+IMPLEMENTATION_SUMMARY.md
+BUILD_SUCCESS.md
+LOCAL_AUDIO_SETUP.md
+QUICKSTART.md
+
+# Native 模块源代码（只保留编译后的 .node 文件）
+native/src/**
+native/target/**
+native/Cargo.toml
+native/Cargo.lock
+native/package.json
+native/README.md
+native/.cargo/**
+
+# 音频文件（用户可以自行下载）
+assets/audios/**
+
+# Git 相关
+.git/**
+.github/**
+yarn.lock
